@@ -16,6 +16,7 @@ python scaffold.py
 - [x] **4.** gradient_norms
 - [x] **5.** apply_he_init
 - [x] **6.** compare_configs
+- [x] **7.** dropout_effect
 
 ---
 

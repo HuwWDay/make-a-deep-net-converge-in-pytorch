@@ -265,3 +265,58 @@ def compare_configs(loaders, configs, epochs=2, lr=0.1, seed=42):
 
     return results
 
+# Step 7 - dropout_effect
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+def dropout_effect(loaders, rate=0.5, epochs=3, seed=42):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # Keys must match the test expectations: 'no_dropout' and 'dropout'
+    variants = {
+        "no_dropout": 0.0,
+        "dropout": rate,
+    }
+
+    results = {}
+
+    for name, drop_rate in variants.items():
+        torch.manual_seed(seed)
+
+        model = DeepNet(
+            activation="relu",
+            batchnorm=True,
+            dropout=drop_rate,
+            n_layers=3,
+        ).to(device)
+
+        model.apply(apply_he_init)
+        optimizer = optim.SGD(model.parameters(), lr=0.1)
+
+        # Train model
+        history = train_epochs(
+            model=model,
+            loaders=loaders,
+            optimizer=optimizer,
+            epochs=epochs,
+        )
+
+        # Measure train accuracy in eval mode (dropout turned off)
+        model.eval()
+        correct_train = 0
+        total_train = 0
+        with torch.no_grad():
+            for inputs, targets in loaders["train"]:
+                inputs, targets = inputs.to(device), targets.to(device)
+                preds = model(inputs).argmax(dim=-1)
+                correct_train += (preds == targets).sum().item()
+                total_train += targets.size(0)
+
+        results[name] = {
+            "train_acc": float(correct_train / total_train),
+            "val_acc": float(history["val_acc"][-1]),
+        }
+
+    return results
+
