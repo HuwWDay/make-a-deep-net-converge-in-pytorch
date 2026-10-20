@@ -23,6 +23,7 @@ python scaffold.py
 - [x] **11.** clipping_effect
 - [x] **12.** split_by_class
 - [x] **13.** transfer_head
+- [x] **14.** transfer_experiment
 
 ---
 

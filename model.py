@@ -561,3 +561,95 @@ def trainable_parameters(model):
     # Sum elements only for tensors currently tracked by autograd
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
+# Step 14 - transfer_experiment
+import torch
+import torch.optim as optim
+
+
+def transfer_experiment(tasks, epochs=2, seed=42):
+    # ---------------------------------------------------------
+    # 1. Seed; pretrain on tasks["A"] with lr=0.1
+    # ---------------------------------------------------------
+    torch.manual_seed(seed)
+
+    pretrained = DeepNet(
+        activation="relu",
+        batchnorm=True,
+        n_layers=3,
+        n_classes=tasks["A"]["n_classes"],
+    )
+    pretrained.apply(apply_he_init)
+
+    opt_a = optim.SGD(pretrained.parameters(), lr=0.1)
+    train_epochs(
+        model=pretrained,
+        loaders=tasks["A"],
+        optimizer=opt_a,
+        epochs=epochs,
+    )
+
+    n_classes_b = tasks["B"]["n_classes"]
+
+    # ---------------------------------------------------------
+    # 2. Scratch: seed; apply_he_init; train on B with lr=0.1
+    # ---------------------------------------------------------
+    torch.manual_seed(seed)
+
+    scratch_model = DeepNet(
+        activation="relu",
+        batchnorm=True,
+        n_layers=3,
+        n_classes=n_classes_b,
+    )
+    scratch_model.apply(apply_he_init)
+
+    opt_scratch = optim.SGD(scratch_model.parameters(), lr=0.1)
+    scratch_hist = train_epochs(
+        model=scratch_model,
+        loaders=tasks["B"],
+        optimizer=opt_scratch,
+        epochs=epochs,
+    )
+
+    # ---------------------------------------------------------
+    # 3. Frozen: transfer_head; optimizer on trainable params (lr=0.1); train
+    # ---------------------------------------------------------
+    torch.manual_seed(seed)
+
+    transfer_model = transfer_head(
+        pretrained=pretrained,
+        n_classes=n_classes_b,
+        freeze_body=True,
+    )
+
+    opt_frozen = optim.SGD(
+        filter(lambda p: p.requires_grad, transfer_model.parameters()),
+        lr=0.1,
+    )
+    frozen_hist = train_epochs(
+        model=transfer_model,
+        loaders=tasks["B"],
+        optimizer=opt_frozen,
+        epochs=epochs,
+    )
+
+    # ---------------------------------------------------------
+    # 4. Fine-tune: unfreeze body; new optimizer at lr=0.005; train again
+    # ---------------------------------------------------------
+    for p in transfer_model.body.parameters():
+        p.requires_grad = True
+
+    opt_finetune = optim.SGD(transfer_model.parameters(), lr=0.005)
+    finetune_hist = train_epochs(
+        model=transfer_model,
+        loaders=tasks["B"],
+        optimizer=opt_finetune,
+        epochs=epochs,
+    )
+
+    return {
+        "scratch": float(scratch_hist["val_acc"][-1]),
+        "frozen": float(frozen_hist["val_acc"][-1]),
+        "finetuned": float(finetune_hist["val_acc"][-1]),
+    }
+
