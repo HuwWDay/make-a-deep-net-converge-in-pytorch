@@ -653,3 +653,33 @@ def transfer_experiment(tasks, epochs=2, seed=42):
         "finetuned": float(finetune_hist["val_acc"][-1]),
     }
 
+# Step 15 - save_deepnet
+import torch
+
+
+def save_deepnet(model, config, path):
+    """Saves model weights alongside its configuration dictionary."""
+    torch.save(
+        {
+            "state_dict": model.state_dict(),
+            "config": config,
+        },
+        path,
+    )
+
+
+def load_deepnet(path):
+    """Reconstructs DeepNet from saved config, restores weights, and sets eval mode."""
+    checkpoint = torch.load(path, weights_only=False)
+
+    # Reconstruct architecture from stored hyperparameter dictionary
+    model = DeepNet(**checkpoint["config"])
+
+    # Load parameter state dict
+    model.load_state_dict(checkpoint["state_dict"])
+
+    # Set to evaluation mode (freezes BatchNorm running stats and disables Dropout)
+    model.eval()
+
+    return model
+

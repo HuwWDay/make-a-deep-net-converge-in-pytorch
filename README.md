@@ -24,6 +24,7 @@ python scaffold.py
 - [x] **12.** split_by_class
 - [x] **13.** transfer_head
 - [x] **14.** transfer_experiment
+- [x] **15.** save_deepnet
 
 ---
 
