@@ -226,3 +226,42 @@ def apply_he_init(model):
             nn.init.zeros_(m.bias)
     return model
 
+# Step 6 - compare_configs
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+
+def compare_configs(loaders, configs, epochs=2, lr=0.1, seed=42):
+    results = {}
+
+    for name, cfg in configs.items():
+        # Create a shallow copy so we do not mutate the input dictionary
+        cfg_kwargs = cfg.copy()
+        use_he = cfg_kwargs.pop("he_init", False)
+
+        # Seed PyTorch for reproducible model initialization
+        torch.manual_seed(seed)
+
+        # Build model with the remaining kwargs
+        model = DeepNet(**cfg_kwargs)
+
+        if use_he:
+            model.apply(apply_he_init)
+
+        # Standard SGD optimizer
+        optimizer = optim.SGD(model.parameters(), lr=lr)
+
+        # Train and capture history
+        history = train_epochs(
+            model=model,
+            loaders=loaders,
+            optimizer=optimizer,
+            epochs=epochs,
+        )
+
+        # Record final epoch validation accuracy
+        results[name] = float(history["val_acc"][-1])
+
+    return results
+

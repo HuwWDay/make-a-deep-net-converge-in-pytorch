@@ -15,6 +15,7 @@ python scaffold.py
 - [x] **3.** train_epochs
 - [x] **4.** gradient_norms
 - [x] **5.** apply_he_init
+- [x] **6.** compare_configs
 
 ---
 
