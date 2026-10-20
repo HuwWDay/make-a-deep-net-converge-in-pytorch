@@ -536,3 +536,28 @@ def split_by_class(loaders, held_out=(5, 7), batch_size=64, seed=42):
         },
     }
 
+# Step 13 - transfer_head
+import copy
+import torch.nn as nn
+
+
+def transfer_head(pretrained, n_classes, freeze_body=True):
+    # Deepcopy first to avoid mutating the original pretrained model
+    model = copy.deepcopy(pretrained)
+
+    # Replace the classification head matching the original input feature size
+    in_features = model.head.in_features
+    model.head = nn.Linear(in_features, n_classes)
+
+    # Optionally freeze all parameters in the feature extractor body
+    if freeze_body:
+        for p in model.body.parameters():
+            p.requires_grad = False
+
+    return model
+
+
+def trainable_parameters(model):
+    # Sum elements only for tensors currently tracked by autograd
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+

@@ -22,6 +22,7 @@ python scaffold.py
 - [x] **10.** one_cycle
 - [x] **11.** clipping_effect
 - [x] **12.** split_by_class
+- [x] **13.** transfer_head
 
 ---
 
