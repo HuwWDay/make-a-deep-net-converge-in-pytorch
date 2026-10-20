@@ -428,3 +428,41 @@ def one_cycle(loaders, max_lr=0.1, epochs=2, seed=42):
         "lr_end": float(lrs[-1]),
     }
 
+# Step 11 - clipping_effect
+import torch
+import torch.nn as nn
+
+
+def clipping_effect(model, xb, yb, max_norm=1.0):
+    device = next(model.parameters()).device
+    xb, yb = xb.to(device), yb.to(device)
+
+    # 1. Zero out existing gradients and perform forward pass
+    model.zero_grad()
+    criterion = nn.CrossEntropyLoss()
+    outputs = model(xb)
+    loss = criterion(outputs, yb)
+
+    # 2. Backward pass to populate .grad on parameters
+    loss.backward()
+
+    # 3. Clip gradients: torch.nn.utils.clip_grad_norm_ returns the total L2 norm *before* clipping
+    norm_before = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=max_norm)
+
+    # 4. Compute total L2 gradient norm *after* clipping across all parameter tensors
+    total_sq_norm = sum(
+        p.grad.detach().pow(2).sum()
+        for p in model.parameters()
+        if p.grad is not None
+    )
+    norm_after = torch.sqrt(total_sq_norm)
+
+    before_val = float(norm_before.item() if torch.is_tensor(norm_before) else norm_before)
+    after_val = float(norm_after.item() if torch.is_tensor(norm_after) else norm_after)
+
+    return {
+        "before": before_val,
+        "after": after_val,
+        "clipped": before_val > max_norm,
+    }
+
