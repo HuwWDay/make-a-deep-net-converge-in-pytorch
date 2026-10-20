@@ -19,6 +19,7 @@ python scaffold.py
 - [x] **7.** dropout_effect
 - [x] **8.** make_optimizer
 - [x] **9.** compare_optimizers
+- [x] **10.** one_cycle
 
 ---
 

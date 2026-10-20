@@ -370,3 +370,61 @@ def compare_optimizers(loaders, names, epochs=2, lr=0.01, seed=42):
 
     return results
 
+# Step 10 - one_cycle
+import torch
+import torch.optim as optim
+from torch.optim.lr_scheduler import OneCycleLR
+
+
+def one_cycle(loaders, max_lr=0.1, epochs=2, seed=42):
+    # 1. Seed reproducibility
+    torch.manual_seed(seed)
+
+    # 2. Build model and apply He init
+    model = DeepNet(
+        activation="relu",
+        batchnorm=True,
+        n_layers=3,
+    )
+    model.apply(apply_he_init)
+
+    # 3. SGD with momentum 0.9
+    optimizer = optim.SGD(model.parameters(), lr=max_lr, momentum=0.9)
+
+    # 4. Standard OneCycleLR scheduler
+    total_steps = epochs * len(loaders["train"])
+    scheduler = OneCycleLR(
+        optimizer,
+        max_lr=max_lr,
+        total_steps=total_steps,
+    )
+
+    # LR before any step is taken (OneCycleLR initializes it upon creation)
+    lr_start = optimizer.param_groups[0]["lr"]
+
+    # 5. Record LRs by hooking directly into scheduler.step
+    lrs = []
+    orig_step = scheduler.step
+
+    def tracked_step():
+        orig_step()
+        lrs.append(optimizer.param_groups[0]["lr"])
+
+    scheduler.step = tracked_step
+
+    # 6. Train model
+    history = train_epochs(
+        model=model,
+        loaders=loaders,
+        optimizer=optimizer,
+        epochs=epochs,
+        scheduler=scheduler,
+    )
+
+    return {
+        "val_acc": float(history["val_acc"][-1]),
+        "lr_start": float(lr_start),
+        "lr_peak": float(max(lrs)),
+        "lr_end": float(lrs[-1]),
+    }
+
