@@ -14,6 +14,7 @@ python scaffold.py
 - [x] **2.** DeepNet
 - [x] **3.** train_epochs
 - [x] **4.** gradient_norms
+- [x] **5.** apply_he_init
 
 ---
 

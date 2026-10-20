@@ -217,3 +217,12 @@ def gradient_norms(model, xb, yb):
     loss.backward()
     return [float(l.weight.grad.norm()) for l in model.body if isinstance(l, nn.Linear)]
 
+# Step 5 - apply_he_init
+def apply_he_init(model):
+    # TODO: kaiming_normal_(weight, nonlinearity='relu') and zero bias for every nn.Linear; return model.
+    for m in model.modules():
+        if isinstance(m, nn.Linear):
+            nn.init.kaiming_normal_(m.weight, nonlinearity="relu")
+            nn.init.zeros_(m.bias)
+    return model
+
