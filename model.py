@@ -209,3 +209,11 @@ def train_epochs(model, loaders, optimizer, epochs=2, scheduler=None, clip=None)
 
     return history
 
+# Step 4 - gradient_norms
+def gradient_norms(model, xb, yb):
+    # TODO: one backward pass; per-Linear weight-gradient norms from the input layer outward.
+    model.zero_grad()
+    loss = torch.nn.functional.cross_entropy(model(xb), yb)
+    loss.backward()
+    return [float(l.weight.grad.norm()) for l in model.body if isinstance(l, nn.Linear)]
+
