@@ -466,3 +466,73 @@ def clipping_effect(model, xb, yb, max_norm=1.0):
         "clipped": before_val > max_norm,
     }
 
+# Step 12 - split_by_class
+import torch
+from torch.utils.data import DataLoader, TensorDataset
+
+
+def split_by_class(loaders, held_out=(5, 7), batch_size=64, seed=42):
+    held_out_set = set(held_out)
+
+    # Determine unique classes present across train and val datasets
+    all_labels = set(loaders["train"].dataset.tensors[1].tolist()) | set(
+        loaders["val"].dataset.tensors[1].tolist()
+    )
+
+    # Class mappings sorted in ascending order of original labels
+    classes_b = sorted(held_out_set)
+    classes_a = sorted(all_labels - held_out_set)
+
+    map_a = {orig: new for new, orig in enumerate(classes_a)}
+    map_b = {orig: new for new, orig in enumerate(classes_b)}
+
+    def filter_and_relabel(dataset, class_map):
+        images, labels = dataset.tensors
+        target_classes = torch.tensor(list(class_map.keys()), dtype=labels.dtype)
+
+        # Boolean mask for rows belonging to target classes
+        mask = torch.isin(labels, target_classes)
+        filtered_images = images[mask]
+        filtered_labels = labels[mask]
+
+        # Vectorized label remapping
+        remapped_labels = torch.empty_like(filtered_labels)
+        for orig, new in class_map.items():
+            remapped_labels[filtered_labels == orig] = new
+
+        return TensorDataset(filtered_images, remapped_labels)
+
+    # Construct split datasets
+    train_a_ds = filter_and_relabel(loaders["train"].dataset, map_a)
+    val_a_ds = filter_and_relabel(loaders["val"].dataset, map_a)
+
+    train_b_ds = filter_and_relabel(loaders["train"].dataset, map_b)
+    val_b_ds = filter_and_relabel(loaders["val"].dataset, map_b)
+
+    # Seeded generators for deterministic shuffling
+    gen_a = torch.Generator().manual_seed(seed)
+    gen_b = torch.Generator().manual_seed(seed)
+
+    loader_train_a = DataLoader(
+        train_a_ds, batch_size=batch_size, shuffle=True, generator=gen_a
+    )
+    loader_val_a = DataLoader(val_a_ds, batch_size=batch_size, shuffle=False)
+
+    loader_train_b = DataLoader(
+        train_b_ds, batch_size=batch_size, shuffle=True, generator=gen_b
+    )
+    loader_val_b = DataLoader(val_b_ds, batch_size=batch_size, shuffle=False)
+
+    return {
+        "A": {
+            "train": loader_train_a,
+            "val": loader_val_a,
+            "n_classes": len(classes_a),
+        },
+        "B": {
+            "train": loader_train_b,
+            "val": loader_val_b,
+            "n_classes": len(classes_b),
+        },
+    }
+
