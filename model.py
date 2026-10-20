@@ -336,3 +336,37 @@ def make_optimizer(model, name, lr=0.01):
     else:
         raise ValueError
 
+# Step 9 - compare_optimizers
+def compare_optimizers(loaders, names, epochs=2, lr=0.01, seed=42):
+    # TODO: seeded ReLU+He+BN DeepNet(n_layers=3) per optimizer name; final val accuracy each.
+    results = {}
+
+    for optim_name in names:
+
+        # Seed PyTorch for reproducible model initialization
+        torch.manual_seed(seed)
+
+        # Build model with the remaining kwargs
+        model = DeepNet(
+            activation="relu",
+            batchnorm=True,
+            n_layers=3,
+        )
+        model.apply(apply_he_init)
+
+        # Standard SGD optimizer
+        optimizer = make_optimizer(model, optim_name, lr)
+
+        # Train and capture history
+        history = train_epochs(
+            model=model,
+            loaders=loaders,
+            optimizer=optimizer,
+            epochs=epochs,
+        )
+
+        # Record final epoch validation accuracy
+        results[optim_name] = float(history["val_acc"][-1])
+
+    return results
+

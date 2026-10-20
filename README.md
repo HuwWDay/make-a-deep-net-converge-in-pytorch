@@ -18,6 +18,7 @@ python scaffold.py
 - [x] **6.** compare_configs
 - [x] **7.** dropout_effect
 - [x] **8.** make_optimizer
+- [x] **9.** compare_optimizers
 
 ---
 
