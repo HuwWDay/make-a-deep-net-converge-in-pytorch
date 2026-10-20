@@ -11,6 +11,7 @@ python scaffold.py
 ## Steps
 
 - [x] **1.** fashion_loaders
+- [x] **2.** DeepNet
 
 ---
 

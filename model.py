@@ -89,3 +89,58 @@ def fashion_loaders(n_train=5000, n_val=1000, batch_size=64, seed=42):
         "n_features": 784,
     }
 
+# Step 2 - DeepNet
+import torch.nn as nn
+
+
+class DeepNet(nn.Module):
+    def __init__(
+        self,
+        n_features=784,
+        n_hidden=100,
+        n_layers=10,
+        activation="sigmoid",
+        batchnorm=False,
+        dropout=0.0,
+        n_classes=10,
+    ):
+        super().__init__()
+
+        # Select activation module
+        act_lower = activation.lower()
+        if act_lower == "sigmoid":
+            act_cls = nn.Sigmoid
+        elif act_lower == "relu":
+            act_cls = nn.ReLU
+        else:
+            raise ValueError(f"Unsupported activation: '{activation}'. Expected 'sigmoid' or 'relu'.")
+
+        layers = []
+        in_dim = n_features
+
+        for _ in range(n_layers):
+            # 1. Linear projection
+            layers.append(nn.Linear(in_dim, n_hidden))
+
+            # 2. Optional BatchNorm1d
+            if batchnorm:
+                layers.append(nn.BatchNorm1d(n_hidden))
+
+            # 3. Activation
+            layers.append(act_cls())
+
+            # 4. Optional Dropout
+            if dropout > 0.0:
+                layers.append(nn.Dropout(p=dropout))
+
+            # Subsequent hidden layers map from n_hidden to n_hidden
+            in_dim = n_hidden
+
+        self.body = nn.Sequential(*layers)
+        self.head = nn.Linear(n_hidden, n_classes)
+
+    def forward(self, x):
+        features = self.body(x)
+        logits = self.head(features)
+        return logits
+
