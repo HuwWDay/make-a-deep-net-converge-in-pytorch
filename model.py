@@ -144,3 +144,68 @@ class DeepNet(nn.Module):
         logits = self.head(features)
         return logits
 
+# Step 3 - train_epochs
+import torch
+import torch.nn as nn
+
+
+def train_epochs(model, loaders, optimizer, epochs=2, scheduler=None, clip=None):
+    criterion = nn.CrossEntropyLoss()
+    device = next(model.parameters()).device
+
+    history = {
+        "train_loss": [],
+        "val_acc": [],
+    }
+
+    train_loader = loaders["train"]
+    val_loader = loaders["val"]
+
+    for epoch in range(epochs):
+        # --- Training Loop ---
+        model.train()
+        running_train_loss = 0.0
+        total_train_samples = 0
+
+        for inputs, targets in train_loader:
+            inputs, targets = inputs.to(device), targets.to(device)
+
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            loss.backward()
+
+            if clip is not None:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=clip)
+
+            optimizer.step()
+
+            if scheduler is not None:
+                scheduler.step()
+
+            batch_size = inputs.size(0)
+            running_train_loss += loss.item() * batch_size
+            total_train_samples += batch_size
+
+        mean_train_loss = running_train_loss / total_train_samples
+        history["train_loss"].append(mean_train_loss)
+
+        # --- Validation Evaluation ---
+        model.eval()
+        correct_val = 0
+        total_val_samples = 0
+
+        with torch.no_grad():
+            for inputs, targets in val_loader:
+                inputs, targets = inputs.to(device), targets.to(device)
+                outputs = model(inputs)
+                preds = outputs.argmax(dim=-1)
+
+                correct_val += (preds == targets).sum().item()
+                total_val_samples += targets.size(0)
+
+        val_accuracy = correct_val / total_val_samples
+        history["val_acc"].append(val_accuracy)
+
+    return history
+

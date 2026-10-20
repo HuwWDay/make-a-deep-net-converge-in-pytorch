@@ -12,6 +12,7 @@ python scaffold.py
 
 - [x] **1.** fashion_loaders
 - [x] **2.** DeepNet
+- [x] **3.** train_epochs
 
 ---
 
